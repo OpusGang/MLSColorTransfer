@@ -82,7 +82,7 @@ function extrapolatepoints(src, ref, maxval, binsize = 20)
     changes = Vector{Vector{Float64}}[]
     Threads.@threads for c in centers
         # check if there's a value within a circle around bin center
-        if nn(kdtree, c)[1] > binsize
+        if nn(kdtree, c)[2] > binsize
             newB = [c[1], c[1]^2, c[2], c[2]^2, c[3], c[3]^2, 1]
             push!(changes, [c, vcat([permutedims(newB) * coeffs[i] for i = 1:3]...)])
         end
@@ -470,7 +470,13 @@ function main()
     end
 
     if endswith(args["filename"], ".png")
-        real = load(args["image"])
+        if args["image"] != nothing
+            real = load(args["image"])
+        elseif !isdir(args["source"])
+            real = load(args["source"])
+        else
+            throw(error("--image must be used if source is folder!"))
+        end
         real = imgtovec(real)
     elseif endswith(args["filename"], ".cube")
         real = identity3dlut(args["lut-size"])
@@ -501,7 +507,7 @@ function main()
     end
 
     if endswith(args["filename"], ".png")
-        transfer = vectoimg(transfer, dims, endswith(args["filename"], ".png"))
+        transfer = vectoimg(transfer, dims)
         transfer8 = floydsteinberg_transfer(transfer)
 
         save(args["filename"], transfer8)
