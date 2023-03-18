@@ -226,9 +226,10 @@ function movingleastsquares(
 
     palette = unique(output)
 
-    lut = Dict{typeof(palette[1]),typeof(insamples[1])}()
+    lut = Vector{typeof(insamples[1])}(undef, length(palette))
 
-    Threads.@threads for i in ProgressBar(palette)
+    Threads.@threads for j in ProgressBar(1:length(palette))
+        i = palette[j]
         x = i .* 256
         w = Vector{Float64}(undef, m)
 
@@ -266,11 +267,11 @@ function movingleastsquares(
         # the paper suggests transposing w is necessary here - will need to prove
         # A_x = inv(reshape(w * y1, (3, 3))) * reshape(w * y2, (3, 3))
 
-        lut[i] = min.(max.((A_x * (x - u_mean) + v_mean) / maxval, 0), 1)
+        lut[j] = min.(max.((A_x * (x - u_mean) + v_mean) / maxval, 0), 1)
     end
 
     for i = 1:length(output)
-        output[i] = lut[output[i]]
+        output[i] = lut[findfirst(x -> x == output[i], palette)]
     end
 
     output
